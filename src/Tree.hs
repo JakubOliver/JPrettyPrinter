@@ -1,3 +1,5 @@
+module Tree where
+
 isBlockBorder :: Char -> Bool
 isBlockBorder '{' = True
 isBlockBorder '}' = True
@@ -71,11 +73,18 @@ transForm '\n' = ' '
 transForm '\t' = ' '
 transForm c = c
 
-main :: IO ()
-main = do 
-    content <- readFile "inputs/input1.java"
-    let normalForm = toNormalForm content
-    putStrLn normalForm
+data Config = Config {
+    indentation :: Int
+}
 
-    let treeForm = intoTree normalForm
-    print treeForm
+getIndentation :: Int -> String
+getIndentation n = concat $ take n $ repeat " "
+
+fromTree :: Tree String -> Config -> String
+fromTree tree config = fromTree' tree config 0
+
+fromTree' :: Tree String -> Config -> Int -> String
+fromTree' (Node head child)  config depth = toIndent ++ head ++ childText 
+    where
+        childText = if null child then "\n" else "{\n" ++ (concat $ map (\c -> fromTree' c config (depth + 1)) child) ++ toIndent ++ "}\n"
+        toIndent = getIndentation $ depth * (indentation config)
