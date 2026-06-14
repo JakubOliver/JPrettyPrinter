@@ -1,25 +1,8 @@
 module Tree where
 
-isBlockBorder :: Char -> Bool
-isBlockBorder '{' = True
-isBlockBorder '}' = True
-isBlockBorder _ = False
+import Utils
 
-isOpeningBorder :: Char -> Bool
-isOpeningBorder '{' = True
-isOpeningBorder _ = False
-
-isClosingBorder :: Char -> Bool
-isClosingBorder '}' = True
-isClosingBorder _ = False
-
-untilStartOfBlock :: String -> (String, String)
-untilStartOfBlock [] = ([], [])
-untilStartOfBlock input@(i:is) 
-    | isBlockBorder i = ([], (i:is))
-    | otherwise = 
-        let (before, after) = untilStartOfBlock is
-        in (i:before, after)
+data Tree a = Node a [Tree a] | Nil deriving Show
 
 getBlocks :: String -> [(String,String)]
 getBlocks "" = []
@@ -46,14 +29,24 @@ getBlock' input@(i:is) depth
         updateHeader :: Char -> (String, String, String) -> (String, String, String)
         updateHeader c (header, block, rest) = (c:header, block, rest)
 
-data Tree a = Node a [Tree a] | Nil deriving Show
+-- TODO: vyresit parsovani for(int i = 0; i < 10; i++)
+splitOn :: Char -> String -> [String]
+splitOn _ "" = []
+splitOn _ [x] = [[x]]
+splitOn d (i:is)
+    | d == i = [i]: splitOn d is
+    | otherwise = (i:s):ss
+        where
+            (s:ss) = splitOn d is
 
 intoTree :: String -> [Tree String]
 intoTree "" = []
-intoTree input = Node header kids : intoTree rest
+intoTree input = withoutBlock ++ Node header kids : intoTree rest
     where
-        (header, block, rest) = getBlock input 
+        (headers, block, rest) = getBlock input 
         kids = intoTree block
+        (header:parts) = reverse $ map strip $ splitOn ';' headers
+        withoutBlock = map (\x -> Node x []) $ reverse parts
 
 toStripForm :: String -> String
 toStripForm [] = []
@@ -73,18 +66,15 @@ transForm '\n' = ' '
 transForm '\t' = ' '
 transForm c = c
 
-data Config = Config {
-    indentation :: Int
-}
-
-getIndentation :: Int -> String
-getIndentation n = concat $ take n $ repeat " "
+addIndentation :: Int -> String
+addIndentation n = concat $ take n $ repeat " "
 
 fromTree :: Tree String -> Config -> String
 fromTree tree config = fromTree' tree config 0
 
 fromTree' :: Tree String -> Config -> Int -> String
-fromTree' (Node head child)  config depth = toIndent ++ head ++ childText 
+fromTree' (Node head child)  config depth = offset ++ toIndent ++ head ++ childText 
     where
+        offset = if null child then "" else "\n"
         childText = if null child then "\n" else "{\n" ++ (concat $ map (\c -> fromTree' c config (depth + 1)) child) ++ toIndent ++ "}\n"
-        toIndent = getIndentation $ depth * (indentation config)
+        toIndent = addIndentation $ depth * (indentation config)

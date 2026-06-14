@@ -1,22 +1,30 @@
 module Main where
 
+import System.Environment
+
 import Tree
 import Utils
 
 -- :set -isrc
+-- :set args -f input/input1.java
+
+modifyContent :: String -> String
+modifyContent s = "{\n" ++ s ++ "\n}"
+
+processFile :: FilePath -> Config -> IO()
+processFile filepath  config = do
+    content <- readFile filepath
+
+    let stringForm = fromTree (head $ intoTree $ toNormalForm content) config
+
+    putStrLn stringForm
+
+    return ()
 
 main :: IO ()
 main = do 
-    content <- readFile "inputs/input1.java"
-    let normalForm = toNormalForm content
-    putStrLn normalForm
+    args <- getArgs
 
-    let treeForm = intoTree normalForm
-    print treeForm
+    let config = processArgs args
 
-    let config = Config {
-        indentation = 4
-    }
-
-    let stringForm = fromTree (head treeForm) config
-    putStrLn stringForm
+    processFile (filePath config) config
