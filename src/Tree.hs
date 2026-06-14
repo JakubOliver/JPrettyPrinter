@@ -1,5 +1,7 @@
 module Tree where
 
+import Data.List
+
 import Utils
 
 data Tree a = Node a [Tree a] | Nil deriving Show
@@ -29,15 +31,20 @@ getBlock' input@(i:is) depth
         updateHeader :: Char -> (String, String, String) -> (String, String, String)
         updateHeader c (header, block, rest) = (c:header, block, rest)
 
--- TODO: vyresit parsovani for(int i = 0; i < 10; i++)
-splitOn :: Char -> String -> [String]
-splitOn _ "" = []
-splitOn _ [x] = [[x]]
-splitOn d (i:is)
-    | d == i = [i]: splitOn d is
+splitOnEnhanced :: Char -> String -> [String]
+splitOnEnhanced d s
+    | isInfixOf "for" s = splitOnEnhanced' d s
+    | otherwise = Utils.splitOn d s
+
+splitOnEnhanced' :: Char -> String -> [String]
+splitOnEnhanced' _ "" = []
+splitOnEnhanced' _ [x] = [[x]]
+splitOnEnhanced' d (i:is)
+    | startsWith (i:is) "for" = [i:is]
+    | d == i = [i]: splitOnEnhanced' d is
     | otherwise = (i:s):ss
         where
-            (s:ss) = splitOn d is
+            (s:ss) = splitOnEnhanced' d is
 
 intoTree :: String -> [Tree String]
 intoTree "" = []
@@ -45,7 +52,7 @@ intoTree input = withoutBlock ++ Node header kids : intoTree rest
     where
         (headers, block, rest) = getBlock input 
         kids = intoTree block
-        (header:parts) = reverse $ map strip $ splitOn ';' headers
+        (header:parts) = reverse $ map strip $ splitOnEnhanced ';' headers
         withoutBlock = map (\x -> Node x []) $ reverse parts
 
 toStripForm :: String -> String
@@ -77,5 +84,5 @@ fromTree' :: Tree String -> Config -> Int -> String
 fromTree' (Node head child)  config depth = offset ++ toIndent ++ head ++ childText 
     where
         offset = if null child then "" else "\n"
-        childText = if null child then "\n" else "{\n" ++ (concat $ map (\c -> fromTree' c config (depth + 1)) child) ++ toIndent ++ "}\n"
+        childText = if null child then "\n" else " {\n" ++ (concat $ map (\c -> fromTree' c config (depth + 1)) child) ++ toIndent ++ "}\n"
         toIndent = addIndentation $ depth * (indentation config)

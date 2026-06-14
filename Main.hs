@@ -19,7 +19,7 @@ processFile filepath  config = do
     -- writeFile filepath stringForm
     if overwrite config 
         then writeFile filepath stringForm 
-        else writeFile ("outputs/" ++ last (splitOn '/' filepath)) stringForm
+        else writeFile ("outputs/" ++ head (splitOn '.' (last (splitOn '/' filepath))) ++ "debug.java") stringForm
 
     return ()
 

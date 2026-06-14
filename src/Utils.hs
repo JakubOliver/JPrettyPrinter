@@ -23,6 +23,27 @@ stripFront (s:ss)
     | s == ' ' = stripFront ss
     | otherwise = (s:ss)
 
+-- detects when the are same "for" and "for"
+-- or is standalone prefix "for(int i = 0; i < 10; i++)" and "for"
+-- but "fortune" is not standalone prefix for "for" therefore is false
+startsWith :: String -> String -> Bool
+startsWith [] [] = True
+startsWith (s:ss) [] 
+    | s == '(' || s == ' ' = True
+    | otherwise = False
+startsWith [] _ = False
+startsWith (s:ss) (p:ps) = s == p && startsWith ss ps
+
+-- TODO: vyresit parsovani for(int i = 0; i < 10; i++)
+splitOn :: Char -> String -> [String]
+splitOn _ "" = []
+splitOn _ [x] = [[x]]
+splitOn d (i:is)
+    | d == i = [i]: splitOn d is
+    | otherwise = (i:s):ss
+        where
+            (s:ss) = splitOn d is
+
 isBlockBorder :: Char -> Bool
 isBlockBorder '{' = True
 isBlockBorder '}' = True
@@ -75,6 +96,10 @@ getIndentation args@(x:y:rest)
     | x == "-i" || x == "--indetation" = Just (read y :: Int)
     | otherwise = getIndentation (y:rest)
 
+defaultOverwrite :: Bool
+defaultOverwrite = False
+--defaultOverwrite = True
+
 getOverwrite :: [String] -> Bool
-getOverwrite [] = False
+getOverwrite [] = defaultOverwrite
 getOverwrite (i:is) = i == "-o" || i == "--overwrite" || getOverwrite is
