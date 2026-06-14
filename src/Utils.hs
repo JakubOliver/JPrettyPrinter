@@ -38,20 +38,21 @@ isClosingBorder _ = False
 
 data Config = Config {
     filePath :: String,
-    indentation :: Int
+    indentation :: Int,
+    overwrite :: Bool
 }
 
 processArgs :: [String] -> Config
 processArgs args = do
-    let filepath = getFilePath args
     let ind = 
             case getIndentation args of 
                 Nothing -> defaultIndentation
                 Just x -> x
 
     Config {
-        filePath = filepath,
-        indentation = ind
+        filePath = getFilePath args,
+        indentation = ind,
+        overwrite = getOverwrite args
     }
 
 defaultIndentation :: Int
@@ -73,3 +74,7 @@ getIndentation [x] = Nothing
 getIndentation args@(x:y:rest)
     | x == "-i" || x == "--indetation" = Just (read y :: Int)
     | otherwise = getIndentation (y:rest)
+
+getOverwrite :: [String] -> Bool
+getOverwrite [] = False
+getOverwrite (i:is) = i == "-o" || i == "--overwrite" || getOverwrite is

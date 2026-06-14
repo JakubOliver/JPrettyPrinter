@@ -1,3 +1,5 @@
+package inputs;
+
 class A {
     private final String name = "A";
 

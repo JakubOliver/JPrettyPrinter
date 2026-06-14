@@ -69,8 +69,9 @@ transForm c = c
 addIndentation :: Int -> String
 addIndentation n = concat $ take n $ repeat " "
 
-fromTree :: Tree String -> Config -> String
-fromTree tree config = fromTree' tree config 0
+fromTree :: [Tree String] -> Config -> String
+fromTree [] _ = ""
+fromTree (tree:rest) config = fromTree' tree config 0 ++ fromTree rest config
 
 fromTree' :: Tree String -> Config -> Int -> String
 fromTree' (Node head child)  config depth = offset ++ toIndent ++ head ++ childText 
