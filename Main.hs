@@ -8,15 +8,15 @@ import Utils
 -- :set -isrc
 -- :set args -f input/input1.java
 
+--TODO: check whether all flags are valid
 processFile :: FilePath -> Config -> IO()
 processFile filepath  config = do
     content <- readFile filepath
 
     let stringForm = fromTree (intoTree $ toNormalForm content) config
 
-    putStrLn stringForm
+    --putStrLn stringForm
 
-    -- writeFile filepath stringForm
     if overwrite config 
         then writeFile filepath stringForm 
         else writeFile ("outputs/" ++ head (splitOn '.' (last (splitOn '/' filepath))) ++ "debug.java") stringForm
@@ -35,6 +35,9 @@ main = do
 
     let config = processArgs args
 
-    files <- getJavaFiles $ filePath config
-
-    processFiles files config
+    if help config 
+        then 
+            putStrLn getHelpText 
+        else do
+            files <- getJavaFiles $ filePath config
+            processFiles files config

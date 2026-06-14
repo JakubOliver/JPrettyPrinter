@@ -6,13 +6,19 @@ import System.FilePath
 
 getJavaFiles :: FilePath -> IO [FilePath]
 getJavaFiles path = do
-    content <- listDirectory path
-    dirs <- filterM doesDirectoryExist $ map (path </>) content
-    files <- filterM doesFileExist $ filter (\x -> takeExtension x == ".java") $ map (path </>) content
+    isFile <- doesFileExist path 
 
-    innerFiles <-  mapM getJavaFiles dirs
+    if isFile 
+        then 
+            return [path]
+        else do
+            content <- listDirectory path
+            dirs <- filterM doesDirectoryExist $ map (path </>) content
+            files <- filterM doesFileExist $ filter (\x -> takeExtension x == ".java") $ map (path </>) content
 
-    return (files ++ concat innerFiles)
+            innerFiles <-  mapM getJavaFiles dirs
+
+            return (files ++ concat innerFiles)
 
 strip :: String -> String
 strip s = stripFront $ reverse $ stripFront $ reverse s
@@ -60,7 +66,8 @@ isClosingBorder _ = False
 data Config = Config {
     filePath :: String,
     indentation :: Int,
-    overwrite :: Bool
+    overwrite :: Bool,
+    help :: Bool
 }
 
 processArgs :: [String] -> Config
@@ -73,7 +80,8 @@ processArgs args = do
     Config {
         filePath = getFilePath args,
         indentation = ind,
-        overwrite = getOverwrite args
+        overwrite = getOverwrite args,
+        help = getHelp args
     }
 
 defaultIndentation :: Int
@@ -93,13 +101,27 @@ getIndentation :: [String] -> Maybe Int
 getIndentation [] = Nothing
 getIndentation [x] = Nothing
 getIndentation args@(x:y:rest)
-    | x == "-i" || x == "--indetation" = Just (read y :: Int)
+    | x == "-i" || x == "--indentation" = Just (read y :: Int)
     | otherwise = getIndentation (y:rest)
+
+getBoolArgument :: [String] -> [String] -> Bool -> Bool
+getBoolArgument [] _ defaultValue = defaultValue
+getBoolArgument arguments@(i:is) possibleOptions defaultValue = elem i possibleOptions || getBoolArgument is possibleOptions defaultValue
 
 defaultOverwrite :: Bool
 defaultOverwrite = False
 --defaultOverwrite = True
 
 getOverwrite :: [String] -> Bool
-getOverwrite [] = defaultOverwrite
-getOverwrite (i:is) = i == "-o" || i == "--overwrite" || getOverwrite is
+getOverwrite args = getBoolArgument args ["-o", "--overwrite"] defaultOverwrite
+--getOverwrite [] = defaultOverwrite
+--getOverwrite (i:is) = i == "-o" || i == "--overwrite" || getOverwrite is
+
+defaulHelp :: Bool
+defaulHelp = False
+
+getHelp :: [String] -> Bool
+getHelp args = getBoolArgument args ["-h", "--help"] defaulHelp
+
+getHelpText :: String
+getHelpText = "Arguments:\n\t-f, --file\t\tpath to the directory/target file\n\t-o, --overwrite\t\twhether the corrected files should overwrite the existing files\n\t-i, --indentation\tnumber of spaces to use for indentation\n\t-h, --help\t\tshows help menu"

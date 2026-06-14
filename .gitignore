@@ -1,1 +1,6 @@
 outputs
+*.hi
+*.o
+JPrettyPrinter
+
+.idea
