@@ -1,17 +1,16 @@
 module Main where
 
 import System.Environment
+import System.Directory
+import System.IO
 
 import Tree
 import Utils
 
--- :set -isrc
--- :set args -f input/input1.java
-
 --TODO: check whether all flags are valid
 processFile :: FilePath -> Config -> IO()
 processFile filepath  config = do
-    content <- readFile filepath
+    content <- readFile' filepath
 
     let stringForm = fromTree (intoTree $ toNormalForm content) config
 
@@ -19,7 +18,9 @@ processFile filepath  config = do
 
     if overwrite config 
         then writeFile filepath stringForm 
-        else writeFile ("outputs/" ++ head (splitOn '.' (last (splitOn '/' filepath))) ++ "debug.java") stringForm
+        else do
+            createDirectoryIfMissing True "outputs"
+            writeFile ("outputs/" ++ head (splitOn '.' (last (splitOn '/' filepath))) ++ "debug.java") stringForm
 
     return ()
 

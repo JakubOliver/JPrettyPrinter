@@ -40,7 +40,8 @@ First option is `-f` or `--file` which is mandatory argument which denotes the t
 * `./JPrettyPrinter -f inputs`
 * `./JPrettyPrinter --file inputs/for.java`
 
-Second option `-o` or `--overwrite` denotes whether the files should be overwritten or if should the corrected version be stored in the output directory. If the flag is not present then the default value is set to not overwrite the files. 
+Second option `-o` or `--overwrite` denotes whether the files should be overwritten or if should the corrected version be stored in the output directory. If the flag is not present then the default value is set to not overwrite the files. (If the overwrite mode is not enabled, then directory structure of the project is flattened, therefore all files are stored in the output directory.)
+
 
 * `./JPrettyPrinter -f inputs --overwrite`
 * `./JPrettyPrinter -f inputs -o`

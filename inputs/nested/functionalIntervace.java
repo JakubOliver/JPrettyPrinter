@@ -1,0 +1,1 @@
+package        org.example;          interface        FunctionalInterface    {      void        method(    );     }       
