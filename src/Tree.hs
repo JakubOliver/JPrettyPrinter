@@ -6,12 +6,10 @@ import Utils
 
 data Tree a = Node a [Tree a] | Nil deriving Show
 
-getBlocks :: String -> [(String,String)]
-getBlocks "" = []
-getBlocks input = (header,block): getBlocks rest
-    where
-        (header, block, rest) = getBlock input
-
+-- returns triplet (header, block, rest)
+-- where header is header of block, 
+-- block is content of inner block
+-- and rest is all content after the inner block
 getBlock :: String -> (String, String, String)
 getBlock input = getBlock' input 0
 
@@ -31,6 +29,13 @@ getBlock' input@(i:is) depth
         updateHeader :: Char -> (String, String, String) -> (String, String, String)
         updateHeader c (header, block, rest) = (c:header, block, rest)
 
+-- splits text based on provided delimeter
+-- it is different than normal splitOn, because it solves prolem with
+-- parsing for block in Java, becase these are exception in Java and 
+-- the semicolon does not mean "end of line" but in all valid
+-- cases after for header have to come block, therefore if it 
+-- encounter for key word, then stops processing and returns with 
+-- unprocessed rest
 splitOnEnhanced :: Char -> String -> [String]
 splitOnEnhanced d s
     | isInfixOf "for" s = splitOnEnhanced' d s
@@ -46,24 +51,43 @@ splitOnEnhanced' d (i:is)
         where
             (s:ss) = splitOnEnhanced' d is
 
+-- processes Java code in normalForm into treeForm
+-- treeForm has following properties:
+-- value of the node denotes one line in final format
+-- if line in question is header for some inner block
+-- then the content of inner block is represented by chilren
+-- of the node
 intoTree :: String -> [Tree String]
-intoTree "" = []
-intoTree input = withoutBlock ++ Node header kids : intoTree rest
+intoTree s = intoTree' s True
+
+-- note: the boolean argument denotes whether the header is 
+-- equal to the whole text container in header and block
+-- therefore distinguish header with empty block, which
+-- have to be enclosed into brackets, and header without block
+intoTree' :: String -> Bool -> [Tree String]
+intoTree' "" True = []
+intoTree' "" False = [Node "" []]
+intoTree' input _  = withoutBlock ++ Node header kids : intoTree' rest True
     where
         (headers, block, rest) = getBlock input 
-        kids = intoTree block
+        kids = intoTree' block (headers == input)
         (header:parts) = reverse $ map strip $ splitOnEnhanced ';' headers
         withoutBlock = map (\x -> Node x []) $ reverse parts
 
+-- strips text of necessary white spaces between code
+-- elements and around semicolons and brackets
 toStripForm :: String -> String
 toStripForm [] = []
-toStripForm [x] = [x]
+toStripForm [x]
+    | x == ' ' = []
+    | otherwise = [x]
 toStripForm input@(x:y:xs)
     | x == ' ' && y == ' ' = toStripForm (x:xs)
     | isBlockBorder x && y == ' ' = toStripForm (x:xs)
-    | x == ' ' && isBlockBorder y = toStripForm (y:xs)
+    | x == ' ' && (isBlockBorder y || y == ';') = toStripForm (y:xs)
     | otherwise = x : toStripForm (y:xs)
 
+-- removes uncessary whitespaces, tabs and end of lines
 toNormalForm :: String -> String
 toNormalForm [] = []
 toNormalForm input@(x:xs) = toStripForm $ map transForm input
@@ -74,8 +98,9 @@ transForm '\t' = ' '
 transForm c = c
 
 addIndentation :: Int -> String
-addIndentation n = concat $ take n $ repeat " "
+addIndentation n = concat $ replicate n " "
 
+-- converts code from tree form back into text form
 fromTree :: [Tree String] -> Config -> String
 fromTree [] _ = ""
 fromTree (tree:rest) config = fromTree' tree config 0 ++ fromTree rest config
@@ -84,5 +109,14 @@ fromTree' :: Tree String -> Config -> Int -> String
 fromTree' (Node head child)  config depth = offset ++ toIndent ++ head ++ childText 
     where
         offset = if null child then "" else "\n"
-        childText = if null child then "\n" else " {\n" ++ (concat $ map (\c -> fromTree' c config (depth + 1)) child) ++ toIndent ++ "}\n"
-        toIndent = addIndentation $ depth * (indentation config)
+
+        childText = 
+            if null child 
+            then "\n" 
+            else 
+                " {\n" ++ 
+                concatMap (\c -> fromTree' c config (depth + 1)) child ++ 
+                toIndent ++ 
+                "}\n"
+
+        toIndent = addIndentation $ depth * indentation config

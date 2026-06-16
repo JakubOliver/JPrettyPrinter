@@ -62,7 +62,7 @@ In the `inputs` directory can be found several Java files testing various aspect
 
 ## About the program
 
-Firstly, here is a disclaimer, the JPrettyPrinter only corrects the formating of the Java code and assumes that the code is correct, therefore does not contain any syntax error etc. 
+Firstly, here is a disclaimer, the JPrettyPrinter only corrects the formating of the Java code and assumes that the code is correct, therefore does not contain any syntax error etc. Furthermore, JPrettyPrinter does support only a subset of Java, especiality does not support code with comments, try block (try with resources) and streams.
 
 ### How does formating works
 

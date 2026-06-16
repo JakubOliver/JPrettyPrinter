@@ -7,20 +7,24 @@ import System.IO
 import Tree
 import Utils
 
---TODO: check whether all flags are valid
 processFile :: FilePath -> Config -> IO()
 processFile filepath  config = do
     content <- readFile' filepath
 
     let stringForm = fromTree (intoTree $ toNormalForm content) config
 
-    --putStrLn stringForm
-
     if overwrite config 
-        then writeFile filepath stringForm 
+        then 
+            writeFile filepath stringForm 
         else do
             createDirectoryIfMissing True "outputs"
-            writeFile ("outputs/" ++ head (splitOn '.' (last (splitOn '/' filepath))) ++ "debug.java") stringForm
+
+            let filename = 
+                    "outputs/" ++ 
+                    head (splitOn '.' (last (splitOn '/' filepath))) ++ 
+                    "debug.java"
+            
+            writeFile filename stringForm
 
     return ()
 

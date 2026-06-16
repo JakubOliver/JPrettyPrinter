@@ -1,9 +1,12 @@
 module Utils where
 
 import System.Directory
-import Control.Monad (filterM)
+import Control.Monad (filterM, when)
 import System.FilePath
 
+-- If input filepath points to java file returns itself
+-- If points to directory then return array of all java files 
+-- in the directory and subdirectories
 getJavaFiles :: FilePath -> IO [FilePath]
 getJavaFiles path = do
     isFile <- doesFileExist path 
@@ -14,12 +17,15 @@ getJavaFiles path = do
         else do
             content <- listDirectory path
             dirs <- filterM doesDirectoryExist $ map (path </>) content
-            files <- filterM doesFileExist $ filter (\x -> takeExtension x == ".java") $ map (path </>) content
+            files <- filterM doesFileExist $ 
+                filter (\x -> takeExtension x == ".java") $ 
+                map (path </>) content
 
             innerFiles <-  mapM getJavaFiles dirs
 
             return (files ++ concat innerFiles)
 
+-- Removes whitespaces around text
 strip :: String -> String
 strip s = stripFront $ reverse $ stripFront $ reverse s
 
@@ -27,7 +33,7 @@ stripFront :: String -> String
 stripFront "" = ""
 stripFront (s:ss) 
     | s == ' ' = stripFront ss
-    | otherwise = (s:ss)
+    | otherwise = s:ss
 
 -- detects when the are same "for" and "for"
 -- or is standalone prefix "for(int i = 0; i < 10; i++)" and "for"
@@ -40,7 +46,6 @@ startsWith (s:ss) []
 startsWith [] _ = False
 startsWith (s:ss) (p:ps) = s == p && startsWith ss ps
 
--- TODO: vyresit parsovani for(int i = 0; i < 10; i++)
 splitOn :: Char -> String -> [String]
 splitOn _ "" = []
 splitOn _ [x] = [[x]]
@@ -70,25 +75,48 @@ data Config = Config {
     help :: Bool
 }
 
+--creates configuration based on arguments
 processArgs :: [String] -> Config
 processArgs args = do
-    let ind = 
-            case getIndentation args of 
-                Nothing -> defaultIndentation
-                Just x -> x
+    let areArgsValid = validateArgs args getValidOptions
 
-    Config {
-        filePath = getFilePath args,
-        indentation = ind,
-        overwrite = getOverwrite args,
-        help = getHelp args
-    }
+    if not areArgsValid
+    then error "Arguments are not valid!!!"
+    else do 
+        let ind = 
+                case getIndentation args of 
+                    Nothing -> defaultIndentation
+                    Just x -> x
+
+        Config {
+            filePath = getFilePath args,
+            indentation = ind,
+            overwrite = getOverwrite args,
+            help = getHelp args
+        }
 
 defaultIndentation :: Int
 defaultIndentation = 4
 
 filePathError :: String
 filePathError = "No input filepath provided!!!"
+
+validateArgs :: [String] -> [String] -> Bool
+validateArgs [] _ = True
+validateArgs (a:as) options 
+    | isOption a = elem a options && validateArgs as options
+    | otherwise = validateArgs as options
+
+isOption :: String -> Bool
+isOption "" = False
+isOption (s:_) = s == '-'
+
+getValidOptions :: [String]
+getValidOptions = 
+    ["-f", "--file", 
+     "-i", "--indentation", 
+     "-o", "--overwrite", 
+     "-h", "--help"]
 
 getFilePath :: [String] -> String
 getFilePath [] = error filePathError
@@ -106,7 +134,11 @@ getIndentation args@(x:y:rest)
 
 getBoolArgument :: [String] -> [String] -> Bool -> Bool
 getBoolArgument [] _ defaultValue = defaultValue
-getBoolArgument arguments@(i:is) possibleOptions defaultValue = elem i possibleOptions || getBoolArgument is possibleOptions defaultValue
+getBoolArgument arguments@(i:is) possibleOptions defaultValue = 
+    elem i possibleOptions || getBoolArgument is possibleOptions defaultValue
+
+-- If you wish to have defaultly enabled overwrite mode 
+-- then uncomment option with True and comment the other one
 
 defaultOverwrite :: Bool
 defaultOverwrite = False
@@ -114,8 +146,6 @@ defaultOverwrite = False
 
 getOverwrite :: [String] -> Bool
 getOverwrite args = getBoolArgument args ["-o", "--overwrite"] defaultOverwrite
---getOverwrite [] = defaultOverwrite
---getOverwrite (i:is) = i == "-o" || i == "--overwrite" || getOverwrite is
 
 defaulHelp :: Bool
 defaulHelp = False
@@ -124,4 +154,9 @@ getHelp :: [String] -> Bool
 getHelp args = getBoolArgument args ["-h", "--help"] defaulHelp
 
 getHelpText :: String
-getHelpText = "Arguments:\n\t-f, --file\t\tpath to the directory/target file\n\t-o, --overwrite\t\twhether the corrected files should overwrite the existing files\n\t-i, --indentation\tnumber of spaces to use for indentation\n\t-h, --help\t\tshows help menu"
+getHelpText = 
+    "Arguments:\n" ++ 
+        "\t-f, --file\t\tpath to the directory/target file\n" ++ 
+        "\t-o, --overwrite\t\twhether the corrected files should overwrite the existing files\n" ++ 
+        "\t-i, --indentation\tnumber of spaces to use for indentation\n" ++
+        "\t-h, --help\t\tshows help menu"
