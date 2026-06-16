@@ -76,21 +76,22 @@ intoTree' input _  = withoutBlock ++ Node header kids : intoTree' rest True
 
 -- strips text of necessary white spaces between code
 -- elements and around semicolons and brackets
-toStripForm :: String -> String
-toStripForm [] = []
-toStripForm [x]
+toStripForm :: String -> Bool -> String
+toStripForm [] _ = []
+toStripForm [x] _
     | x == ' ' = []
     | otherwise = [x]
-toStripForm input@(x:y:xs)
-    | x == ' ' && y == ' ' = toStripForm (x:xs)
-    | (isBlockBorder x || x == '(') && y == ' ' = toStripForm (x:xs)
-    | x == ' ' && (isBlockBorder y || y == ';' || y == ')') = toStripForm (y:xs)
-    | otherwise = x : toStripForm (y:xs)
+toStripForm input@(x:y:xs) canErase
+    | canErase && x == ' ' && y == ' ' = toStripForm (x:xs) canErase
+    | canErase &&  (isBlockBorder x || x == '(') && y == ' ' = toStripForm (x:xs) canErase
+    | canErase && x == ' ' && (isBlockBorder y || y == ';' || y == ')') = toStripForm (y:xs) canErase
+    | x == '"' = x : toStripForm (y:xs) (not canErase)
+    | otherwise = x : toStripForm (y:xs) canErase
 
 -- removes uncessary whitespaces, tabs and end of lines
 toNormalForm :: String -> String
 toNormalForm [] = []
-toNormalForm input@(x:xs) = toStripForm $ map transForm input
+toNormalForm input@(x:xs) = toStripForm (map transForm input) True
 
 transForm :: Char -> Char
 transForm '\n' = ' '
