@@ -83,8 +83,8 @@ toStripForm [x]
     | otherwise = [x]
 toStripForm input@(x:y:xs)
     | x == ' ' && y == ' ' = toStripForm (x:xs)
-    | isBlockBorder x && y == ' ' = toStripForm (x:xs)
-    | x == ' ' && (isBlockBorder y || y == ';') = toStripForm (y:xs)
+    | (isBlockBorder x || x == '(') && y == ' ' = toStripForm (x:xs)
+    | x == ' ' && (isBlockBorder y || y == ';' || y == ')') = toStripForm (y:xs)
     | otherwise = x : toStripForm (y:xs)
 
 -- removes uncessary whitespaces, tabs and end of lines
@@ -103,19 +103,24 @@ addIndentation n = concat $ replicate n " "
 -- converts code from tree form back into text form
 fromTree :: [Tree String] -> Config -> String
 fromTree [] _ = ""
-fromTree (tree:rest) config = fromTree' tree config 0 ++ fromTree rest config
+fromTree (tree:rest) config = fromTree' tree config False 0 ++ fromTree rest config
 
-fromTree' :: Tree String -> Config -> Int -> String
-fromTree' (Node head child)  config depth = offset ++ toIndent ++ head ++ childText 
+fromTree' :: Tree String -> Config -> Bool -> Int -> String
+fromTree' (Node head child) config firstChild depth = 
+    offset ++ toIndent ++ head ++ childText 
     where
-        offset = if null child then "" else "\n"
+        isElse = isPrefixOf "else" head
+        offset = if null child || firstChild || isElse then "" else "\n"
 
         childText = 
             if null child 
             then "\n" 
             else 
-                " {\n" ++ 
-                concatMap (\c -> fromTree' c config (depth + 1)) child ++ 
+                let (first:others) = child
+
+                in "{\n" ++ 
+                fromTree' first config True (depth + 1) ++
+                concatMap (\c -> fromTree' c config False (depth + 1)) others ++ 
                 toIndent ++ 
                 "}\n"
 
