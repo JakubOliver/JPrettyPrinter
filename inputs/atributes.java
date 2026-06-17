@@ -7,5 +7,5 @@ class Atributes {
 
     String c;
 
-    getA() {return a;}getB() {return b;}getC() {return c;}
+    int getA() {return a;}String getB() {return b;}String getC() {return c;}
 }
